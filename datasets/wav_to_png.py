@@ -8,13 +8,13 @@ train_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/train/mix'
 val_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/val/mix'
 test_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/test/mix'
 
-in_folders = [train_folder, val_folder, test_folder]
+in_folders = [val_folder, test_folder]
 
 train_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/train/mix'
 val_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/val/mix'
 test_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/test/mix'
 
-out_folders = [train_folder_out, val_folder_out, test_folder_out]
+out_folders = [val_folder_out, test_folder_out]
 
 os.makedirs(train_folder_out, exist_ok=True)
 os.makedirs(val_folder_out, exist_ok=True)
