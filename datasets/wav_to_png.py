@@ -4,15 +4,15 @@ import numpy as np
 from PIL import Image, ImageOps
 import soundfile as sf
 
-train_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/train/mix'
-val_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/val/mix'
-test_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/test/mix'
+train_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/train/ins3'
+val_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/val/ins3'
+test_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/test/ins3'
 
 in_folders = [val_folder, test_folder]
 
-train_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/train/mix'
-val_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/val/mix'
-test_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/test/mix'
+train_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/train/ins3'
+val_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/val/ins3'
+test_folder_out = 'datasets/randomMIDI/PianoViolin11025/jpeg_amp_only/test/ins3'
 
 out_folders = [val_folder_out, test_folder_out]
 
