@@ -58,9 +58,9 @@ instruments = [0, 0, 0, 40]
 length = 3
 sr = 11025
 
-num_train = 200
-num_val = 0
-num_test = 0
+num_train = 0
+num_val = 50
+num_test = 50
 
 fs = FluidSynth()
 
