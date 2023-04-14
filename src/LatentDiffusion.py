@@ -44,6 +44,7 @@ class LatentDiffusion(pl.LightningModule):
                  num_timesteps=1000,
                  latent_scale_factor=0.1,
                  batch_size=1,
+                 schedule='linear',
                  lr=1e-4):
         """
             This is a simplified version of Latent Diffusion        
@@ -60,7 +61,8 @@ class LatentDiffusion(pl.LightningModule):
         with torch.no_grad():
             self.latent_dim=self.ae.encode(torch.ones(1,3,256,256)).shape[1]
         self.model=DenoisingDiffusionProcess(generated_channels=self.latent_dim,
-                                             num_timesteps=num_timesteps)
+                                             num_timesteps=num_timesteps,
+                                             schedule=schedule)
 
     @torch.no_grad()
     def forward(self,*args,**kwargs):
@@ -69,6 +71,7 @@ class LatentDiffusion(pl.LightningModule):
     
     def input_T(self, input):
         # By default, let the model accept samples in [0,1] range, and transform them automatically
+        input = input['amplitude']
         return (input.clip(0,1).mul_(2)).sub_(1)
     
     def output_T(self, input):
@@ -117,6 +120,7 @@ class LatentDiffusionConditional(LatentDiffusion):
                  valid_dataset=None,
                  num_timesteps=1000,
                  latent_scale_factor=0.1,
+                 schedule='linear',
                  batch_size=1,
                  lr=1e-4):
         pl.LightningModule.__init__(self)
@@ -131,7 +135,8 @@ class LatentDiffusionConditional(LatentDiffusion):
             self.latent_dim=self.ae.encode(torch.ones(1,3,256,256)).shape[1]
         self.model=DenoisingDiffusionConditionalProcess(generated_channels=self.latent_dim,
                                                         condition_channels=self.latent_dim,
-                                                        num_timesteps=num_timesteps)
+                                                        num_timesteps=num_timesteps,
+                                                        schedule=schedule)
         
             
     @torch.no_grad()

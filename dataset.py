@@ -31,10 +31,10 @@ class SpectrogramDataset(Dataset):
         
         # check files
         supported_formats=['wav', 'mp3']        
-        self.target_files=[el for el in os.listdir(self.target_dir) if el.split('.')[-1] in supported_formats]
+        self.files=[el for el in os.listdir(self.target_dir) if el.split('.')[-1] in supported_formats]
         if condition_dir is not None:
             self.condition_files=[el for el in os.listdir(self.condition_dir) if el.split('.')[-1] in supported_formats]
-            assert self.target_files == self.condition_files, 'Filenames do not match'
+            assert self.files == self.condition_files, 'Filenames do not match'
 
     def __len__(self):
         return len(self.files)
@@ -43,7 +43,7 @@ class SpectrogramDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        target_name = os.path.join(self.target_dir, self.target_files[idx])
+        target_name = os.path.join(self.target_dir, self.files[idx])
         target_audio, sr = librosa.load(target_name, sr=self.sample_rate)
         target_spectrogram = librosa.stft(target_audio, n_fft=self.window_length, hop_length=self.hop_length)
 
@@ -55,7 +55,7 @@ class SpectrogramDataset(Dataset):
         target_phase = target_phase[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
 
         if self.condition_dir is not None:
-            condition_name = os.path.join(self.condition_dir, self.target_files[idx])
+            condition_name = os.path.join(self.condition_dir, self.files[idx])
             condition_audio, sr = librosa.load(condition_name, sr=self.sample_rate)
             condition_spectrogram = librosa.stft(condition_audio, n_fft=self.window_length, hop_length=self.hop_length)
 
@@ -67,7 +67,7 @@ class SpectrogramDataset(Dataset):
             condition_amplitude = condition_amplitude[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
             condition_phase = condition_phase[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
 
-        target = {'name':self.target_files[idx], 'amplitude': target_amplitude, 'phase': target_phase}
+        target = {'name':self.files[idx], 'amplitude': target_amplitude, 'phase': target_phase}
         condition = {'name':self.condition_files[idx], 'amplitude': condition_amplitude, 'phase': condition_phase}
 
         if self.return_pair:
@@ -93,20 +93,3 @@ class SpectrogramDataset(Dataset):
 
         sf.write(os.path.join(output_folder, spectrogram_dict['name']), audio, self.sample_rate)
         return audio
-
-        
-    
-
-'''ds = SpectrogramDataset(target_dir='datasets/randomMIDI/PianoViolin11025/WAV/foreground/test/ins3',
-                        condition_dir='datasets/randomMIDI/PianoViolin11025/WAV/foreground/test/mix',
-                        return_pair=True)
-
-song1, song2 = ds[4]
-ds.save_audio(song1)
-
-plt.subplot(1,2,1)
-plt.imshow(song1['amplitude'].permute(1,2,0))
-plt.subplot(1,2,2)
-plt.imshow(song2['amplitude'].permute(1,2,0))
-
-plt.show()'''

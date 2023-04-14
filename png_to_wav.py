@@ -27,15 +27,6 @@ hop_length = 128
     sf.write(os.path.join(wav_folder, filename.replace('.png', '.wav')), audio, 11025)
     break'''
 
-# TEMPORARY getting phase from original
-phase_folder = 'datasets/randomMIDI/PianoViolin11025/WAV/foreground/test/mix/song0030.wav'
-audio = librosa.load(phase_folder, sr=11025)
-spectrogram = librosa.stft(audio[0], n_fft=window_length, hop_length=hop_length)
-spectrogram = spectrogram[:, :256]
-print(spectrogram.shape)
-phase = np.angle(spectrogram)
-print(phase.shape)
-
 # amplitude only
 
 for filename in os.listdir(image_folder):
