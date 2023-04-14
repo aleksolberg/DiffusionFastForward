@@ -155,7 +155,7 @@ class LatentDiffusionConditional(LatentDiffusion):
             latents_condition=self.ae.encode(self.input_T(condition)).detach()*self.latent_scale_factor
         loss = self.model.p_loss(latents, latents_condition)
         
-        self.log('train_loss',loss)
+        self.log('train_loss',loss, on_step=True, prog_bar=True)
         
         return loss
             
@@ -168,6 +168,6 @@ class LatentDiffusionConditional(LatentDiffusion):
             latents_condition=self.ae.encode(self.input_T(condition)).detach()*self.latent_scale_factor
         loss = self.model.p_loss(latents, latents_condition)
         
-        self.log('val_loss',loss)
+        self.log('val_loss',loss, on_step=True, prog_bar=True)
         
         return loss
