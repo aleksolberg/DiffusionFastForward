@@ -43,44 +43,46 @@ class SpectrogramDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        target_name = os.path.join(self.target_dir, self.files[idx])
-        target_audio, sr = librosa.load(target_name, sr=self.sample_rate)
+        target_audio, sr = librosa.load(os.path.join(self.target_dir, self.files[idx]), sr=self.sample_rate)
         target_spectrogram = librosa.stft(target_audio, n_fft=self.window_length, hop_length=self.hop_length)
 
         target_amplitude = torch.from_numpy(librosa.amplitude_to_db(np.abs(target_spectrogram), ref=1e-5)/255)
-        target_phase = torch.from_numpy(np.angle(target_spectrogram))
 
-        # Shaping tensors
+        # Shaping tensor
         target_amplitude = target_amplitude[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
-        target_phase = target_phase[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
 
         if self.condition_dir is not None:
-            condition_name = os.path.join(self.condition_dir, self.files[idx])
-            condition_audio, sr = librosa.load(condition_name, sr=self.sample_rate)
+            condition_audio, sr = librosa.load(os.path.join(self.condition_dir, self.files[idx]), sr=self.sample_rate)
             condition_spectrogram = librosa.stft(condition_audio, n_fft=self.window_length, hop_length=self.hop_length)
 
             condition_amplitude = torch.from_numpy(librosa.amplitude_to_db(np.abs(condition_spectrogram), ref=1e-5)/255)
 
-            condition_phase = torch.from_numpy(np.angle(condition_spectrogram))
-
-            # Shaping tensors
+            # Shaping tensor
             condition_amplitude = condition_amplitude[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
-            condition_phase = condition_phase[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
-
-        target = {'name':self.files[idx], 'amplitude': target_amplitude, 'phase': target_phase}
-        condition = {'name':self.condition_files[idx], 'amplitude': condition_amplitude, 'phase': condition_phase}
 
         if self.return_pair:
-            return condition, target
+            return condition_amplitude, target_amplitude
         else:
-            return target
+            return target_amplitude
+    
+    def get_phase(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
         
-    def to_audio(self, spectrogram_dict):
-        ' Takes a dictionary of the form {name, amplitude, phase} and converts to audio'
+        dir = self.condition_dir if self.condition_dir is not None else self.target_dir
 
-        amplitude = torch.mean(spectrogram_dict['amplitude'], dim=0) * 255
+        audio, sr = librosa.load(os.path.join(dir, self.files[idx]), sr=self.sample_rate)
+        spectrogram = librosa.stft(audio, n_fft=self.window_length, hop_length=self.hop_length)
+        phase = torch.from_numpy(np.angle(spectrogram))
+        phase = phase[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
+
+        return phase
+        
+    def to_audio(self, amplitude, phase):
+
+        amplitude = torch.mean(amplitude, dim=0) * 255
         amplitude = librosa.db_to_amplitude(amplitude, ref=1e-5).numpy()
-        phase = torch.mean(spectrogram_dict['phase'], dim=0).numpy()
+        phase = torch.mean(phase, dim=0).numpy()
 
         spectrogram = amplitude*np.exp(1j*phase)
         audio = librosa.istft(spectrogram, hop_length=self.hop_length, n_fft=self.window_length)
@@ -88,8 +90,10 @@ class SpectrogramDataset(Dataset):
         return audio
 
 
-    def save_audio(self, spectrogram_dict, output_folder = 'results'):
-        audio = self.to_audio(spectrogram_dict)
+    def save_audio(self, spectrogram, phase, name='test.wav', output_folder = 'results'):
+        audio = self.to_audio(spectrogram, phase)
 
-        sf.write(os.path.join(output_folder, spectrogram_dict['name']), audio, self.sample_rate)
+        print(audio)
+
+        sf.write(os.path.join(output_folder, name), audio, self.sample_rate)
         return audio

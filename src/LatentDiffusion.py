@@ -71,7 +71,6 @@ class LatentDiffusion(pl.LightningModule):
     
     def input_T(self, input):
         # By default, let the model accept samples in [0,1] range, and transform them automatically
-        input = input['amplitude']
         return (input.clip(0,1).mul_(2)).sub_(1)
     
     def output_T(self, input):
@@ -155,7 +154,7 @@ class LatentDiffusionConditional(LatentDiffusion):
             latents_condition=self.ae.encode(self.input_T(condition)).detach()*self.latent_scale_factor
         loss = self.model.p_loss(latents, latents_condition)
         
-        self.log('train_loss',loss, on_step=True, prog_bar=True)
+        self.log('train_loss',loss, prog_bar=True)
         
         return loss
             
@@ -168,6 +167,6 @@ class LatentDiffusionConditional(LatentDiffusion):
             latents_condition=self.ae.encode(self.input_T(condition)).detach()*self.latent_scale_factor
         loss = self.model.p_loss(latents, latents_condition)
         
-        self.log('val_loss',loss, on_step=True, prog_bar=True)
+        self.log('val_loss',loss, prog_bar=True)
         
         return loss
