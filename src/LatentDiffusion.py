@@ -9,9 +9,7 @@ from diffusers.models import AutoencoderKL
 from .DenoisingDiffusionProcess import *
 
 class AutoEncoder(nn.Module):
-    def __init__(self,
-                 model_type= "stabilityai/sd-vae-ft-ema"#@param ["stabilityai/sd-vae-ft-mse", "stabilityai/sd-vae-ft-ema"]
-                ):
+    def __init__(self, autoencoder: AutoencoderKL):
         """
             A wrapper for an AutoEncoder model
             
@@ -19,10 +17,12 @@ class AutoEncoder(nn.Module):
             
             A custom AutoEncoder could be trained and used with the same interface.
             Yet, this model works quite well for many tasks out of the box!
+
+            model_type= "stabilityai/sd-vae-ft-ema"#@param ["stabilityai/sd-vae-ft-mse", "stabilityai/sd-vae-ft-ema"]
         """
         
         super().__init__()
-        self.model=AutoencoderKL.from_pretrained(model_type)
+        self.model=autoencoder
         
     def forward(self,input):
         return self.model(input).sample
@@ -40,6 +40,7 @@ class AutoEncoder(nn.Module):
 class LatentDiffusion(pl.LightningModule):
     def __init__(self,
                  train_dataset,
+                 autoencoder: AutoencoderKL,
                  valid_dataset=None,
                  num_timesteps=1000,
                  latent_scale_factor=0.1,
@@ -56,10 +57,11 @@ class LatentDiffusion(pl.LightningModule):
         self.lr = lr
         self.register_buffer('latent_scale_factor', torch.tensor(latent_scale_factor))
         self.batch_size=batch_size
-        
-        self.ae=AutoEncoder()
+
+        channels, h, w = train_dataset[0][0].shape   
+        self.ae=AutoEncoder(autoencoder)
         with torch.no_grad():
-            self.latent_dim=self.ae.encode(torch.ones(1,3,256,256)).shape[1]
+            self.latent_dim=self.ae.encode(torch.ones(1, channels, h, w)).shape[1]
         self.model=DenoisingDiffusionProcess(generated_channels=self.latent_dim,
                                              num_timesteps=num_timesteps,
                                              schedule=schedule)
@@ -116,6 +118,7 @@ class LatentDiffusion(pl.LightningModule):
 class LatentDiffusionConditional(LatentDiffusion):
     def __init__(self,
                  train_dataset,
+                 autoencoder: AutoencoderKL,
                  valid_dataset=None,
                  num_timesteps=1000,
                  latent_scale_factor=0.1,
@@ -129,9 +132,10 @@ class LatentDiffusionConditional(LatentDiffusion):
         self.register_buffer('latent_scale_factor', torch.tensor(latent_scale_factor))
         self.batch_size=batch_size
         
-        self.ae=AutoEncoder()
+        channels, h, w = train_dataset[0][0].shape 
+        self.ae=AutoEncoder(autoencoder)
         with torch.no_grad():
-            self.latent_dim=self.ae.encode(torch.ones(1,3,256,256)).shape[1]
+            self.latent_dim=self.ae.encode(torch.ones(1, channels, h, w)).shape[1]
         self.model=DenoisingDiffusionConditionalProcess(generated_channels=self.latent_dim,
                                                         condition_channels=self.latent_dim,
                                                         num_timesteps=num_timesteps,

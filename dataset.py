@@ -18,7 +18,8 @@ class SpectrogramDataset(Dataset):
                  sample_rate = 11025,
                  window_length=511,
                  hop_length=128,
-                 out_shape = (3, 256, 256)):
+                 out_channels = 3,
+                 out_shape = (256, 256)):
         self.target_dir = target_dir
         self.condition_dir = condition_dir
         self.transforms = transforms
@@ -27,6 +28,7 @@ class SpectrogramDataset(Dataset):
         self.sample_rate = sample_rate
         self.window_length = window_length
         self.hop_length = hop_length
+        self.out_channels = out_channels
         self.out_shape=out_shape
         
         # check files
@@ -49,7 +51,9 @@ class SpectrogramDataset(Dataset):
         target_amplitude = torch.from_numpy(librosa.amplitude_to_db(np.abs(target_spectrogram), ref=1e-5)/255)
 
         # Shaping tensor
-        target_amplitude = target_amplitude[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
+        if self.out_shape is not None:
+            target_amplitude = target_amplitude[:self.out_shape[0], :self.out_shape[1]]
+        target_amplitude = target_amplitude.unsqueeze(0).repeat(self.out_channels, 1, 1)
 
         if self.condition_dir is not None:
             condition_audio, sr = librosa.load(os.path.join(self.condition_dir, self.files[idx]), sr=self.sample_rate)
@@ -58,7 +62,9 @@ class SpectrogramDataset(Dataset):
             condition_amplitude = torch.from_numpy(librosa.amplitude_to_db(np.abs(condition_spectrogram), ref=1e-5)/255)
 
             # Shaping tensor
-            condition_amplitude = condition_amplitude[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
+            if self.out_shape is not None:
+                condition_amplitude = condition_amplitude[:self.out_shape[0], :self.out_shape[1]]
+            condition_amplitude = condition_amplitude.unsqueeze(0).repeat(self.out_channels, 1, 1)
 
         if self.return_pair:
             return condition_amplitude, target_amplitude
@@ -74,12 +80,14 @@ class SpectrogramDataset(Dataset):
         audio, sr = librosa.load(os.path.join(dir, self.files[idx]), sr=self.sample_rate)
         spectrogram = librosa.stft(audio, n_fft=self.window_length, hop_length=self.hop_length)
         phase = torch.from_numpy(np.angle(spectrogram))
-        phase = phase[:self.out_shape[1], :self.out_shape[2]].unsqueeze(0).repeat(self.out_shape[0], 1, 1)
+        if self.out_shape is not None:
+            phase = phase[:self.out_shape[0], :self.out_shape[1]]
+        phase = phase.unsqueeze(0).repeat(self.out_channels, 1, 1)
 
         return phase
         
     def to_audio(self, amplitude, phase):
-
+        # Taking mean because of how some pretrained autoencoders require 3 channels
         amplitude = torch.mean(amplitude, dim=0) * 255
         amplitude = librosa.db_to_amplitude(amplitude, ref=1e-5).numpy()
         phase = torch.mean(phase, dim=0).numpy()
@@ -92,8 +100,6 @@ class SpectrogramDataset(Dataset):
 
     def save_audio(self, spectrogram, phase, name='test.wav', output_folder = 'results'):
         audio = self.to_audio(spectrogram, phase)
-
-        print(audio)
 
         sf.write(os.path.join(output_folder, name), audio, self.sample_rate)
         return audio
