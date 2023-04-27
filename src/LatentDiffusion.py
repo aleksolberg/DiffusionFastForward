@@ -38,7 +38,7 @@ class Autoencoder(pl.LightningModule):
         x_recon = self.model(x).sample
 
         loss = torch.nn.MSELoss()(x_recon, x)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, prog_bar=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
