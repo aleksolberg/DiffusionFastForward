@@ -12,15 +12,19 @@ class PixelDiffusion(pl.LightningModule):
                  valid_dataset=None,
                  num_timesteps=1000,
                  batch_size=1,
-                 lr=1e-3):
+                 lr=1e-3,
+                 schedule='linear'):
         super().__init__()
         self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
         self.batch_size=batch_size
+        channels, h, w = train_dataset[0][0].shape   
         
-        self.model=DenoisingDiffusionProcess(num_timesteps=num_timesteps)
+        self.model=DenoisingDiffusionProcess(generated_channels=channels,
+                                             num_timesteps=num_timesteps,
+                                             schedule=schedule)
 
     @torch.no_grad()
     def forward(self,*args,**kwargs):
@@ -38,7 +42,7 @@ class PixelDiffusion(pl.LightningModule):
         images=batch
         loss = self.model.p_loss(self.input_T(images))
         
-        self.log('train_loss',loss)
+        self.log('train_loss',loss, prog_bar=True)
         
         return loss
             
@@ -46,7 +50,7 @@ class PixelDiffusion(pl.LightningModule):
         images=batch
         loss = self.model.p_loss(self.input_T(images))
         
-        self.log('val_loss',loss)
+        self.log('val_loss',loss, prog_bar=True)
         
         return loss
         
@@ -72,23 +76,28 @@ class PixelDiffusionConditional(PixelDiffusion):
     def __init__(self,
                  train_dataset,
                  valid_dataset=None,
-                 condition_channels=3,
                  batch_size=1,
-                 lr=1e-3):
+                 lr=1e-3,
+                 schedule = 'linear',
+                 num_timesteps = 1000):
         pl.LightningModule.__init__(self)
         self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
         self.batch_size=batch_size
+        channels, h, w = train_dataset[0][0].shape   
         
-        self.model=DenoisingDiffusionConditionalProcess(condition_channels=condition_channels)
+        self.model=DenoisingDiffusionConditionalProcess(generated_channels = channels,
+                                                        condition_channels = channels,
+                                                        schedule=schedule,
+                                                        num_timesteps=num_timesteps)
     
     def training_step(self, batch, batch_idx):   
         input,output=batch
         loss = self.model.p_loss(self.input_T(output),self.input_T(input))
         
-        self.log('train_loss',loss)
+        self.log('train_loss',loss, prog_bar=True)
         
         return loss
             
@@ -96,6 +105,6 @@ class PixelDiffusionConditional(PixelDiffusion):
         input,output=batch
         loss = self.model.p_loss(self.input_T(output),self.input_T(input))
         
-        self.log('val_loss',loss)
+        self.log('val_loss',loss, prog_bar=True)
         
         return loss
