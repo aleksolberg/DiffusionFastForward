@@ -143,7 +143,6 @@ class LatentDiffusionConditional(LatentDiffusion):
                  batch_size=1,
                  lr=1e-4):
         pl.LightningModule.__init__(self)
-        self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr

@@ -81,7 +81,6 @@ class PixelDiffusionConditional(PixelDiffusion):
                  schedule = 'linear',
                  num_timesteps = 1000):
         pl.LightningModule.__init__(self)
-        self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
