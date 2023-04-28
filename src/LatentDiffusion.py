@@ -8,11 +8,14 @@ from diffusers.models import AutoencoderKL
 
 from .DenoisingDiffusionProcess import *
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 class Autoencoder(pl.LightningModule):
     def __init__(self, 
                  autoencoder: AutoencoderKL,
                  learning_rate = 1e-4):
         super().__init__()
+        self.save_hyperparameters()
         self.model = autoencoder
         self.learning_rate = learning_rate
     
@@ -65,6 +68,7 @@ class LatentDiffusion(pl.LightningModule):
         """        
         
         super().__init__()
+        self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
@@ -74,7 +78,7 @@ class LatentDiffusion(pl.LightningModule):
         channels, h, w = train_dataset[0][0].shape   
         self.ae=autoencoder
         with torch.no_grad():
-            self.latent_dim=self.ae.encode(torch.ones(1, channels, h, w)).shape[1]
+            self.latent_dim=self.ae.encode(torch.ones(1, channels, h, w).to(device)).shape[1]
         self.model=DenoisingDiffusionProcess(generated_channels=self.latent_dim,
                                              num_timesteps=num_timesteps,
                                              schedule=schedule)
@@ -139,6 +143,7 @@ class LatentDiffusionConditional(LatentDiffusion):
                  batch_size=1,
                  lr=1e-4):
         pl.LightningModule.__init__(self)
+        self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
@@ -148,7 +153,7 @@ class LatentDiffusionConditional(LatentDiffusion):
         channels, h, w = train_dataset[0][0].shape 
         self.ae=autoencoder
         with torch.no_grad():
-            self.latent_dim=self.ae.encode(torch.ones(1, channels, h, w)).shape[1]
+            self.latent_dim=self.ae.encode(torch.ones(1, channels, h, w).to(device)).shape[1]
         self.model=DenoisingDiffusionConditionalProcess(generated_channels=self.latent_dim,
                                                         condition_channels=self.latent_dim,
                                                         num_timesteps=num_timesteps,
