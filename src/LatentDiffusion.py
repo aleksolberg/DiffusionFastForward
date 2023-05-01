@@ -26,7 +26,7 @@ class Autoencoder(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
     
-    def encode(self,input,mode=False):
+    def encode(self,input,mode=True):
         dist=self.model.encode(input).latent_dist
         if mode:
             return dist.mode()
