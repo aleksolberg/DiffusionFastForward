@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from diffusers.models import AutoencoderKL
+import matplotlib.pyplot as plt
 
 from .DenoisingDiffusionProcess import *
 
@@ -102,7 +103,7 @@ class LatentDiffusion(pl.LightningModule):
         loss = self.model.p_loss(latents)
         
         self.log('train_loss',loss)
-        
+
         return loss
             
     def validation_step(self, batch, batch_idx):     
@@ -141,13 +142,15 @@ class LatentDiffusionConditional(LatentDiffusion):
                  latent_scale_factor=0.1,
                  schedule='linear',
                  batch_size=1,
-                 lr=1e-4):
+                 lr=1e-4,
+                 test_every_n_epochs=10):
         pl.LightningModule.__init__(self)
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
         self.register_buffer('latent_scale_factor', torch.tensor(latent_scale_factor))
         self.batch_size=batch_size
+        self.test_every_n_epochs = test_every_n_epochs
         
         channels, h, w = train_dataset[0][0].shape 
         self.ae=autoencoder
@@ -190,4 +193,9 @@ class LatentDiffusionConditional(LatentDiffusion):
         
         self.log('val_loss',loss, prog_bar=True)
         
+        if self.current_epoch % self.test_every_n_epochs == self.test_every_n_epochs-1:
+            input=torch.unsqueeze(condition[0], 0)
+            out=self.forward(input, verbose=True)
+            plt.imshow(out[0].detach().cpu().permute(1,2,0))
+
         return loss
