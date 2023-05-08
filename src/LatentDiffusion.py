@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from diffusers.models import AutoencoderKL
 import matplotlib.pyplot as plt
+from IPython.display import display, clear_output
 
 from .DenoisingDiffusionProcess import *
 
@@ -161,6 +162,8 @@ class LatentDiffusionConditional(LatentDiffusion):
                                                         num_timesteps=num_timesteps,
                                                         schedule=schedule)
         
+
+        
             
     @torch.no_grad()
     def forward(self,condition,*args,**kwargs):
@@ -192,10 +195,28 @@ class LatentDiffusionConditional(LatentDiffusion):
         loss = self.model.p_loss(latents, latents_condition)
         
         self.log('val_loss',loss, prog_bar=True)
-        
-        if self.current_epoch % self.test_every_n_epochs == self.test_every_n_epochs-1:
-            input=torch.unsqueeze(condition[0], 0)
-            out=self.forward(input, verbose=True)
-            plt.imshow(out[0].detach().cpu().permute(1,2,0))
 
         return loss
+    
+    def on_train_start(self):
+        self.fig = plt.figure(figsize=(3,3))
+        self.ax = self.fig.gca()
+        self.image = plt.imshow(self.valid_dataset[0][0].permute(1,2,0), interpolation='None', animated=True)
+        return super().on_train_start()
+    
+    def on_load_checkpoint(self, checkpoint):
+        self.fig = plt.figure(figsize=(3,3))
+        self.ax = self.fig.gca()
+        self.image = plt.imshow(self.valid_dataset[0][0].permute(1,2,0), interpolation='None', animated=True)
+        return super().on_load_checkpoint(checkpoint)
+    
+    def on_validation_end(self):
+        if self.current_epoch % self.test_every_n_epochs == self.test_every_n_epochs-1:
+            plt.clf()
+            condition = self.valid_dataset[0][0]
+            input=torch.unsqueeze(condition, 0)
+            out=self.forward(input, verbose=True)
+            
+            self.image.set_data(out[0].detach().cpu().permute(1,2,0))
+            plt.show()
+        return super().on_validation_end()

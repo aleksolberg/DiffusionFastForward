@@ -96,7 +96,7 @@ class PixelDiffusionConditional(PixelDiffusion):
         input,output=batch
         loss = self.model.p_loss(self.input_T(output),self.input_T(input))
         
-        self.log('train_loss',loss, prog_bar=True)
+        self.log('train_loss',loss, prog_bar=True, on_step=False, on_epoch=True)
         
         return loss
             
@@ -104,6 +104,6 @@ class PixelDiffusionConditional(PixelDiffusion):
         input,output=batch
         loss = self.model.p_loss(self.input_T(output),self.input_T(input))
         
-        self.log('val_loss',loss, prog_bar=True)
+        self.log('val_loss',loss, prog_bar=True, on_step=False, on_epoch=True)
         
         return loss
