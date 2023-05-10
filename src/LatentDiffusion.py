@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from diffusers.models import AutoencoderKL
 import matplotlib.pyplot as plt
-from IPython.display import display, clear_output
+import random
 
 from .DenoisingDiffusionProcess import *
 
@@ -181,7 +181,7 @@ class LatentDiffusionConditional(LatentDiffusion):
             latents_condition=self.ae.encode(self.input_T(condition)).detach()*self.latent_scale_factor
         loss = self.model.p_loss(latents, latents_condition)
         
-        self.log('train_loss',loss, prog_bar=True)
+        self.log('train_loss',loss, prog_bar=True, on_step=False, on_epoch=True)
         
         return loss
             
@@ -194,29 +194,25 @@ class LatentDiffusionConditional(LatentDiffusion):
             latents_condition=self.ae.encode(self.input_T(condition)).detach()*self.latent_scale_factor
         loss = self.model.p_loss(latents, latents_condition)
         
-        self.log('val_loss',loss, prog_bar=True)
+        self.log('val_loss',loss, prog_bar=True, on_step=False, on_epoch=True)
 
         return loss
     
-    def on_train_start(self):
-        self.fig = plt.figure(figsize=(3,3))
-        self.ax = self.fig.gca()
-        self.image = plt.imshow(self.valid_dataset[0][0].permute(1,2,0), interpolation='None', animated=True)
-        return super().on_train_start()
-    
-    def on_load_checkpoint(self, checkpoint):
-        self.fig = plt.figure(figsize=(3,3))
-        self.ax = self.fig.gca()
-        self.image = plt.imshow(self.valid_dataset[0][0].permute(1,2,0), interpolation='None', animated=True)
-        return super().on_load_checkpoint(checkpoint)
-    
     def on_validation_end(self):
         if self.current_epoch % self.test_every_n_epochs == self.test_every_n_epochs-1:
-            plt.clf()
-            condition = self.valid_dataset[0][0]
+            condition = self.valid_dataset[random.randint(0,10)][0]
             input=torch.unsqueeze(condition, 0)
             out=self.forward(input, verbose=True)
             
-            self.image.set_data(out[0].detach().cpu().permute(1,2,0))
-            plt.show()
+            try:
+                self.ax.cla()
+                self.im.set_data(out[0].detach().cpu().permute(1,2,0))
+                self.fig.canvas.draw_idle()
+                plt.show()
+            except:
+                self.fig, self.ax = plt.subplots(1,1, figsize=(3,3))
+                self.im = self.ax.imshow(out[0].detach().cpu().permute(1,2,0))
+                self.fig.canvas.draw_idle()
+                plt.show()
+
         return super().on_validation_end()

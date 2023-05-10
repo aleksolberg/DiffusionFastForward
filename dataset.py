@@ -15,6 +15,7 @@ class SpectrogramDataset(Dataset):
                  transforms=None,
                  paired=True,
                  return_pair=False,
+                 return_mask = False,
                  sample_rate = 11025,
                  window_length=511,
                  hop_length=128,
@@ -24,6 +25,7 @@ class SpectrogramDataset(Dataset):
         self.condition_dir = condition_dir
         self.transforms = transforms
         self.return_pair=return_pair
+        self.return_mask = return_mask
 
         self.sample_rate = sample_rate
         self.window_length = window_length
@@ -53,7 +55,7 @@ class SpectrogramDataset(Dataset):
         # Shaping tensor
         if self.out_shape is not None:
             target_amplitude = target_amplitude[:self.out_shape[0], :self.out_shape[1]]
-        target_amplitude = target_amplitude.unsqueeze(0).repeat(self.out_channels, 1, 1)
+        target = target_amplitude.unsqueeze(0).repeat(self.out_channels, 1, 1)
 
         if self.condition_dir is not None:
             condition_audio, sr = librosa.load(os.path.join(self.condition_dir, self.files[idx]), sr=self.sample_rate)
@@ -64,12 +66,15 @@ class SpectrogramDataset(Dataset):
             # Shaping tensor
             if self.out_shape is not None:
                 condition_amplitude = condition_amplitude[:self.out_shape[0], :self.out_shape[1]]
-            condition_amplitude = condition_amplitude.unsqueeze(0).repeat(self.out_channels, 1, 1)
+            condition = condition_amplitude.unsqueeze(0).repeat(self.out_channels, 1, 1)
+        
+            if self.return_mask:
+                target = self.get_ideal_mask(target, condition)
 
         if self.return_pair:
-            return condition_amplitude, target_amplitude
+            return condition, target
         else:
-            return target_amplitude
+            return target
     
     def get_phase(self, idx):
         if torch.is_tensor(idx):
@@ -103,3 +108,7 @@ class SpectrogramDataset(Dataset):
 
         sf.write(os.path.join(output_folder, name), audio, self.sample_rate)
         return audio
+    
+    def get_ideal_mask(self, source_spectrogram, mix_spectrogram):
+        mask = torch.div(source_spectrogram, torch.max(source_spectrogram, mix_spectrogram))
+        return mask
