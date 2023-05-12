@@ -146,6 +146,7 @@ class LatentDiffusionConditional(LatentDiffusion):
                  lr=1e-4,
                  test_every_n_epochs=10):
         pl.LightningModule.__init__(self)
+        self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
@@ -210,6 +211,7 @@ class LatentDiffusionConditional(LatentDiffusion):
                 self.fig.canvas.draw_idle()
                 plt.show()
             except:
+                plt.ion()
                 self.fig, self.ax = plt.subplots(1,1, figsize=(3,3))
                 self.im = self.ax.imshow(out[0].detach().cpu().permute(1,2,0))
                 self.fig.canvas.draw_idle()
