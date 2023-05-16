@@ -17,7 +17,7 @@ class Autoencoder(pl.LightningModule):
                  autoencoder: AutoencoderKL,
                  learning_rate = 1e-4):
         super().__init__()
-        self.save_hyperparameters()
+        #self.save_hyperparameters()
         self.model = autoencoder
         self.learning_rate = learning_rate
     
@@ -70,7 +70,7 @@ class LatentDiffusion(pl.LightningModule):
         """        
         
         super().__init__()
-        self.save_hyperparameters()
+        #self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
@@ -146,7 +146,7 @@ class LatentDiffusionConditional(LatentDiffusion):
                  lr=1e-4,
                  test_every_n_epochs=10):
         pl.LightningModule.__init__(self)
-        self.save_hyperparameters()
+        #self.save_hyperparameters()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.lr = lr
