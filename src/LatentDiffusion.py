@@ -64,7 +64,9 @@ class LatentDiffusion(pl.LightningModule):
                  latent_scale_factor=0.1,
                  batch_size=1,
                  schedule='linear',
-                 lr=1e-4):
+                 lr=1e-4, 
+                 warm_up_steps = 10000,
+                 loss_fn = F.l1_loss):
         """
             This is a simplified version of Latent Diffusion        
         """        
@@ -76,6 +78,8 @@ class LatentDiffusion(pl.LightningModule):
         self.lr = lr
         self.register_buffer('latent_scale_factor', torch.tensor(latent_scale_factor))
         self.batch_size=batch_size
+        self.warm_up_steps = warm_up_steps
+        self.loss_fn = loss_fn
 
         channels, h, w = train_dataset[0][0].shape   
         self.ae=autoencoder
@@ -86,9 +90,8 @@ class LatentDiffusion(pl.LightningModule):
                                              schedule=schedule)
 
     @torch.no_grad()
-    def forward(self,*args,**kwargs):
-        #return self.output_T(self.model(*args,**kwargs))
-        return self.output_T(self.ae.decode(self.model(*args,**kwargs)/self.latent_scale_factor))
+    def forward(self, *args, **kwargs):
+        return self.output_T(self.ae.decode(self.model(*args, **kwargs))/self.latent_scale_factor)
     
     def input_T(self, input):
         # By default, let the model accept samples in [0,1] range, and transform them automatically
@@ -134,6 +137,23 @@ class LatentDiffusion(pl.LightningModule):
     def configure_optimizers(self):
         return  torch.optim.AdamW(list(filter(lambda p: p.requires_grad, self.model.parameters())), lr=self.lr)
     
+    def optimizer_step(self, epoch, 
+                       batch_idx, 
+                       optimizer,
+                       optimizer_closure):
+        
+        # Linear Warm-up
+        if self.trainer.global_step < self.warm_up_steps:
+            lr_scale = min(1.0, float(self.trainer.global_step + 1) / self.warm_up_steps)
+            for pg in optimizer.param_groups:
+                pg["lr"] = lr_scale * self.lr
+
+        optimizer.step(closure=optimizer_closure)
+
+        self.log('lr', pg['lr'], prog_bar=True)
+
+        return super().optimizer_step(epoch, batch_idx, optimizer, optimizer_closure)
+    
 class LatentDiffusionConditional(LatentDiffusion):
     def __init__(self,
                  train_dataset,
@@ -144,7 +164,8 @@ class LatentDiffusionConditional(LatentDiffusion):
                  schedule='linear',
                  batch_size=1,
                  lr=1e-4,
-                 test_every_n_epochs=10):
+                 warm_up_steps = 10000,
+                 loss_fn = F.l1_loss):
         pl.LightningModule.__init__(self)
         #self.save_hyperparameters()
         self.train_dataset = train_dataset
@@ -152,7 +173,8 @@ class LatentDiffusionConditional(LatentDiffusion):
         self.lr = lr
         self.register_buffer('latent_scale_factor', torch.tensor(latent_scale_factor))
         self.batch_size=batch_size
-        self.test_every_n_epochs = test_every_n_epochs
+        self.warm_up_steps = warm_up_steps
+        self.loss_fn = loss_fn
         
         channels, h, w = train_dataset[0][0].shape 
         self.ae=autoencoder
@@ -198,23 +220,3 @@ class LatentDiffusionConditional(LatentDiffusion):
         self.log('val_loss',loss, prog_bar=True, on_step=False, on_epoch=True)
 
         return loss
-    
-    def on_validation_end(self):
-        if self.current_epoch % self.test_every_n_epochs == self.test_every_n_epochs-1:
-            condition = self.valid_dataset[random.randint(0,10)][0]
-            input=torch.unsqueeze(condition, 0)
-            out=self.forward(input, verbose=True)
-            
-            try:
-                self.ax.cla()
-                self.im.set_data(out[0].detach().cpu().permute(1,2,0))
-                self.fig.canvas.draw_idle()
-                plt.show()
-            except:
-                plt.ion()
-                self.fig, self.ax = plt.subplots(1,1, figsize=(3,3))
-                self.im = self.ax.imshow(out[0].detach().cpu().permute(1,2,0))
-                self.fig.canvas.draw_idle()
-                plt.show()
-
-        return super().on_validation_end()

@@ -121,6 +121,9 @@ class PixelDiffusionConditional(PixelDiffusion):
                                                         num_timesteps=num_timesteps,
                                                         loss_fn=loss_fn)
     
+    def forward(self, condition, *args, **kwargs):
+        return self.output_T(self.model(self.input_T(condition)))
+
     def training_step(self, batch, batch_idx):   
         input,output=batch
         loss = self.model.p_loss(self.input_T(output),self.input_T(input))
