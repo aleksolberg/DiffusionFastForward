@@ -93,7 +93,7 @@ class PixelDiffusion(pl.LightningModule):
 
         optimizer.step(closure=optimizer_closure)
 
-        self.log('lr', pg['lr'], prog_bar=True)
+        #self.log('lr', pg['lr'], prog_bar=True)
 
         return super().optimizer_step(epoch, batch_idx, optimizer, optimizer_closure)
     
